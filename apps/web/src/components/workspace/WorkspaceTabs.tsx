@@ -311,18 +311,32 @@ export function WorkspaceTabs({
             <MenuItem disabled={!layout.closedChats.length} onClick={onReopen}>
               Reopen closed chat
             </MenuItem>
-            <MenuSeparator />
             {pane === "side" ? (
-              <MenuItem onClick={() => setSideExpanded(projectRef, !layout.sideExpanded)}>
-                {layout.sideExpanded ? "Restore both panes" : "Expand side pane"}
-              </MenuItem>
+              <>
+                <MenuSeparator />
+                <MenuItem onClick={() => setSideExpanded(projectRef, !layout.sideExpanded)}>
+                  {layout.sideExpanded ? "Restore both panes" : "Expand side pane"}
+                </MenuItem>
+              </>
             ) : null}
-            <MenuItem onClick={() => setSideOpen(projectRef, !layout.sideOpen)}>
-              <PanelRight />
-              {layout.sideOpen ? "Hide" : "Show"} side pane
-            </MenuItem>
           </MenuPopup>
         </Menu>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                size="icon-xs"
+                variant="ghost"
+                aria-label={`${layout.sideOpen ? "Hide" : "Show"} side pane`}
+                aria-pressed={layout.sideOpen}
+                onClick={() => setSideOpen(projectRef, !layout.sideOpen)}
+              />
+            }
+          >
+            <PanelRight />
+          </TooltipTrigger>
+          <TooltipPopup>{layout.sideOpen ? "Hide" : "Show"} side pane</TooltipPopup>
+        </Tooltip>
       </div>
     </div>
   );
