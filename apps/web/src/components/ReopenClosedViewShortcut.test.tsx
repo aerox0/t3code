@@ -1,3 +1,6 @@
+import { useWorkspaceStore, workspaceChatId } from "../workspaceStore";
+import { scopeProjectRef, scopedProjectKey } from "@t3tools/client-runtime/environment";
+import { ProjectId } from "@t3tools/contracts";
 import type { ResolvedKeybindingsConfig, ScopedThreadRef } from "@t3tools/contracts";
 import { DEFAULT_RESOLVED_KEYBINDINGS } from "@t3tools/shared/keybindings";
 import * as Cause from "effect/Cause";
@@ -38,6 +41,7 @@ vi.mock("../rpc/atomRegistry", () => ({
 }));
 vi.mock("../state/entities", () => ({
   readThreadShell: () => ({ projectId: "project-1", worktreePath: null }),
+  useThreadShell: () => ({ projectId: "project-1", worktreePath: null }),
   readProject: () => (state.workspaceAvailable ? { workspaceRoot: "/work/project" } : null),
 }));
 vi.mock("../composerDraftStore", () => {
@@ -113,6 +117,7 @@ beforeEach(() => {
   state.navigate.mockResolvedValue(undefined);
   state.openPreview.mockReset();
   useClosedViewStore.setState({ entries: [] });
+  useWorkspaceStore.setState({ byProject: {} });
   useRightPanelStore.setState({ byThreadKey: {}, userActionRevisionByThreadKey: {} });
   useTerminalUiStateStore.setState({
     terminalUiStateByThreadKey: {},
@@ -144,6 +149,30 @@ afterEach(async () => {
 });
 
 describe("root reopen shortcut", () => {
+  it.each(["keyboard", "desktop"])(
+    "reopens one project chat via %s without also restoring a tool",
+    async (entryPoint) => {
+      state.params = { environmentId: ref.environmentId, threadId: ref.threadId };
+      const project = scopeProjectRef(ref.environmentId, ProjectId.make("project-1"));
+      const target = { kind: "server", threadRef: ref } as const;
+      const id = workspaceChatId(target);
+      useWorkspaceStore.getState().open(project, { id, kind: "chat", target });
+      useWorkspaceStore.getState().close(project, id);
+      useClosedViewStore
+        .getState()
+        .remember({ kind: "panel-tab", threadRef: ref, surface: { kind: "diff", id: "diff" } });
+      await render();
+      await act(() => {
+        if (entryPoint === "desktop") menuAction?.("view.reopenClosed");
+        else expect(press().defaultPrevented).toBe(true);
+      });
+      expect(
+        useWorkspaceStore.getState().byProject[scopedProjectKey(project)]?.main.activeTabId,
+      ).toBe(id);
+      expect(useClosedViewStore.getState().entries).toHaveLength(1);
+      expect(state.navigate).toHaveBeenCalledTimes(1);
+    },
+  );
   it("restores a tab from settings to its owning remote thread", async () => {
     useClosedViewStore
       .getState()

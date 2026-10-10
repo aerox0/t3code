@@ -194,6 +194,25 @@ describe.each([
     },
   ],
 ])("useNewThreadHandler with a %s draft", (_, draft) => {
+  it("lets the workspace place a new chat before navigating", async () => {
+    testState.reset(draft);
+    const pending = useNewThreadHandler()(
+      { environmentId: "environment-ssh", projectId: "project-remote" } as never,
+      { newTab: true, navigate: false },
+    );
+    testState.completeProjectFileRead(null);
+    expect(await pending).toEqual({ draftId: "draft-delayed", threadId: "thread-delayed" });
+    expect(testState.router.navigate).not.toHaveBeenCalled();
+  });
+  it("creates a separate chat tab even when an empty draft is reusable", async () => {
+    testState.reset(draft);
+    const pending = useNewThreadHandler()(
+      { environmentId: "environment-ssh", projectId: "project-remote" } as never,
+      { newTab: true },
+    );
+    testState.completeProjectFileRead(null);
+    expect(await pending).toEqual({ draftId: "draft-delayed", threadId: "thread-delayed" });
+  });
   it.each(["approval-required", "auto-accept-edits", "auto", "full-access"] as const)(
     "uses the target environment's %s permissions for new threads",
     async (runtimeMode) => {

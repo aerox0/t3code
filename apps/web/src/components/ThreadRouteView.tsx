@@ -36,7 +36,17 @@ import {
  * Rendered by the `_chat` layout rather than by the two leaf routes, since
  * an element only survives a route swap when the same parent renders it.
  */
-export function ThreadRouteView({ target }: { target: ThreadRouteTarget }) {
+export function ThreadRouteView({
+  target,
+  embedded = false,
+  focused = true,
+  onPromote,
+}: {
+  target: ThreadRouteTarget;
+  embedded?: boolean;
+  focused?: boolean;
+  onPromote?: (draftId: string, ref: ScopedThreadRef) => void;
+}) {
   const navigate = useNavigate();
   const draftId = target.kind === "draft" ? target.draftId : null;
   const draftSession = useComposerDraftStore((store) =>
@@ -123,6 +133,10 @@ export function ThreadRouteView({ target }: { target: ThreadRouteTarget }) {
       if (cancelled) {
         return;
       }
+      if (embedded && draftId) {
+        onPromote?.(draftId, canonicalThreadRef);
+        return;
+      }
       void navigate({
         to: "/$environmentId/$threadId",
         params: buildThreadRouteParams(canonicalThreadRef),
@@ -132,14 +146,14 @@ export function ThreadRouteView({ target }: { target: ThreadRouteTarget }) {
     return () => {
       cancelled = true;
     };
-  }, [canonicalThreadRef, navigate]);
+  }, [canonicalThreadRef, navigate, embedded, draftId, onPromote]);
 
   useEffect(() => {
-    if (target.kind !== "draft" || draftSession || canonicalThreadRef) {
+    if (embedded || target.kind !== "draft" || draftSession || canonicalThreadRef) {
       return;
     }
     void navigate({ to: "/", replace: true });
-  }, [canonicalThreadRef, draftSession, navigate, target.kind]);
+  }, [canonicalThreadRef, draftSession, navigate, target.kind, embedded]);
 
   useEffect(() => {
     if (target.kind !== "server" || !bootstrapComplete) {
@@ -151,11 +165,11 @@ export function ThreadRouteView({ target }: { target: ThreadRouteTarget }) {
     if (renderState === "missing") {
       const { clearPendingFileDropsForThread } = useSidebarPendingFileDropStore.getState();
       clearPendingFileDropsForThread(target.threadRef);
-      if (environmentHasAnyThreads) {
+      if (environmentHasAnyThreads && !embedded) {
         void navigate({ to: "/", replace: true });
       }
     }
-  }, [bootstrapComplete, environmentHasAnyThreads, navigate, renderState, target]);
+  }, [bootstrapComplete, environmentHasAnyThreads, navigate, renderState, target, embedded]);
 
   useEffect(() => {
     if (target.kind !== "server" || !serverThreadStarted || !draftThread) {
@@ -169,6 +183,8 @@ export function ThreadRouteView({ target }: { target: ThreadRouteTarget }) {
     if (draftSession) {
       view = (
         <ChatView
+          workspaceEmbedded={embedded}
+          workspaceFocused={focused}
           key={target.draftId}
           draftId={target.draftId}
           environmentId={draftSession.environmentId}
@@ -181,6 +197,8 @@ export function ThreadRouteView({ target }: { target: ThreadRouteTarget }) {
   } else if (renderState === "ready" || (renderState === "loading" && serverThreadShell !== null)) {
     view = (
       <ChatView
+        workspaceEmbedded={embedded}
+        workspaceFocused={focused}
         key={nextChatViewKey?.key}
         environmentId={target.threadRef.environmentId}
         threadId={target.threadRef.threadId}
@@ -189,6 +207,16 @@ export function ThreadRouteView({ target }: { target: ThreadRouteTarget }) {
     );
   }
 
+  if (embedded)
+    return (
+      view ?? (
+        <div className="p-6 text-sm text-muted-foreground">
+          {renderState === "missing"
+            ? "This conversation is no longer available."
+            : "Loading conversation…"}
+        </div>
+      )
+    );
   return (
     <SidebarInset className="h-svh min-h-0 overflow-hidden overscroll-y-none md:h-dvh">
       {view}

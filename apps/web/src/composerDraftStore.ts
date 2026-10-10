@@ -1,5 +1,6 @@
 import { stripInlineContextReferences } from "./lib/composerContextReferences";
 import { elementContextToPreviewAnnotation } from "./lib/elementContext";
+import { workspaceRetainsDraft, useWorkspaceStore } from "./workspaceStore";
 import {
   ElementContextDetails,
   DEFAULT_MODEL,
@@ -2197,6 +2198,10 @@ export function partializeComposerDraftStoreState(
       .filter(
         ([threadKey, draftThread]) =>
           mappedDraftKeys.has(threadKey) ||
+          workspaceRetainsDraft(
+            threadKey,
+            scopeThreadRef(draftThread.environmentId, draftThread.threadId),
+          ) ||
           isDraftThreadPromoting(draftThread) ||
           composerDraftHasUserContent(state.draftsByThreadKey[threadKey]) ||
           draftThreadHasOpenPreview(draftThread),
@@ -2797,6 +2802,12 @@ const composerDraftStore = create<ComposerDraftStoreState>()(
             if (
               previousThreadKeyForLogicalProject &&
               previousThreadKeyForLogicalProject !== draftId &&
+              !workspaceRetainsDraft(
+                previousThreadKeyForLogicalProject,
+                previousDraftThread
+                  ? scopeThreadRef(previousDraftThread.environmentId, previousDraftThread.threadId)
+                  : undefined,
+              ) &&
               !isComposerThreadKeyInUse(
                 nextLogicalProjectDraftThreadKeyByLogicalProjectKey,
                 previousThreadKeyForLogicalProject,
@@ -2998,6 +3009,17 @@ const composerDraftStore = create<ComposerDraftStoreState>()(
           });
         },
         finalizePromotedDraftThread: (threadRef) => {
+          const draftId = resolveComposerDraftKey(get(), threadRef);
+          const promoted = draftId ? get().draftThreadsByThreadKey[draftId] : null;
+          if (draftId && promoted?.promotedTo) {
+            useWorkspaceStore
+              .getState()
+              .promoteDraft(
+                scopeProjectRef(promoted.environmentId, promoted.projectId),
+                draftId,
+                promoted.promotedTo,
+              );
+          }
           const threadKey = resolveComposerDraftKey(get(), threadRef) ?? "";
           if (threadKey.length === 0) {
             return;
