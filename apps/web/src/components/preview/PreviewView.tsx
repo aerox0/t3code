@@ -98,6 +98,8 @@ interface Props {
   tabId?: string | null;
   configuredUrls?: ReadonlyArray<string> | undefined;
   visible: boolean;
+  shortcutsEnabled?: boolean;
+  layoutVersion?: string;
   onSendAnnotation?: (
     annotation: PreviewAnnotationPayload,
     image: ComposerImageAttachment | null,
@@ -147,6 +149,8 @@ export function PreviewView({
   tabId: requestedTabId,
   configuredUrls,
   visible,
+  shortcutsEnabled = true,
+  layoutVersion,
   onSendAnnotation,
 }: Props) {
   const [focusUrlNonce, setFocusUrlNonce] = useState<number | undefined>(undefined);
@@ -937,7 +941,7 @@ export function PreviewView({
   // Subscribe only while visible; `toggle-panel` is owned by ChatView's
   // URL-aware handler regardless of whether the panel is currently mounted.
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || !shortcutsEnabled) return;
     return subscribePreviewAction((action) => {
       switch (action) {
         case "refresh":
@@ -959,7 +963,7 @@ export function PreviewView({
           return;
       }
     });
-  }, [handleRefresh, handleResetZoom, handleZoomIn, handleZoomOut, visible]);
+  }, [handleRefresh, handleResetZoom, handleZoomIn, handleZoomOut, visible, shortcutsEnabled]);
 
   return (
     <div
@@ -1091,6 +1095,7 @@ export function PreviewView({
             <BrowserSurfaceSlot
               key={runtimeTabId}
               tabId={runtimeTabId}
+              {...(layoutVersion === undefined ? {} : { layoutVersion })}
               visible={visible && !isUnreachable}
               className="absolute inset-0 h-full w-full"
             />

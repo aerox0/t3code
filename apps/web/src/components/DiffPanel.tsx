@@ -188,12 +188,14 @@ function DiffFileHeaderSuffix({
 }
 
 interface DiffPanelProps {
+  threadRef?: ScopedThreadRef;
   mode?: DiffPanelMode;
   composerDraftTarget: ScopedThreadRef | DraftId;
   workspaceMutationId: string | null;
 }
 
 export default function DiffPanel({
+  threadRef,
   mode = "inline",
   composerDraftTarget,
   workspaceMutationId,
@@ -217,10 +219,11 @@ export default function DiffPanel({
   const [codeViewRevision, setCodeViewRevision] = useState(0);
   const [codeView, setCodeView] = useState<AnnotatableCodeViewHandle | null>(null);
 
-  const routeThreadRef = useParams({
+  const urlThreadRef = useParams({
     strict: false,
     select: (params) => resolveThreadRouteRef(params),
   });
+  const routeThreadRef = threadRef ?? urlThreadRef;
   const activeThreadId = routeThreadRef?.threadId ?? null;
   const activeThread = useThreadShell(routeThreadRef);
   const activeThreadProjection = useThreadProjection(routeThreadRef)?.projection ?? null;

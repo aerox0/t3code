@@ -43,6 +43,23 @@ in a new thread's model picker to add or remove them. A regular click returns to
 single model. Choose a base branch and send. Each selection starts a separate thread
 and worktree while you stay in the new thread composer. This requires a Git project.
 
+## Work in tabs and panes
+
+On web and desktop, each project has its own tabs. Use the tab bar’s **+** menu to
+open a new chat, browser, terminal, or another tool. Drag a tab to reorder it, to
+the other pane’s tab bar, or to the right edge to open the side pane. The pane
+menu also lets you move tabs without dragging. Resize the side pane by dragging
+its divider.
+
+Tools keep the chat and worktree they were opened for, even when you switch to
+another chat. Hover over a tab to see its location. Moving a browser or terminal
+keeps its session running. Closing a chat tab leaves its agent running; reopen
+it from the sidebar or choose **Reopen closed chat** in the pane menu. Closing a
+tool uses that tool’s usual close behavior.
+
+Tabs and pane placement are saved on this device. Hiding the side pane keeps its
+tabs available when you show it again.
+
 ## Pin and reorder threads
 
 Pin a thread from its menu to keep it above your active work.

@@ -1082,6 +1082,7 @@ interface ThreadTerminalDrawerProps {
   terminalGroups: ThreadTerminalGroup[];
   activeTerminalGroupId: string;
   focusRequestId: number;
+  autoFocus?: boolean;
   onSplitTerminal: () => void;
   onSplitTerminalVertical: () => void;
   onNewTerminal: () => void;
@@ -1158,6 +1159,7 @@ export default function ThreadTerminalDrawer({
   terminalGroups,
   activeTerminalGroupId,
   focusRequestId,
+  autoFocus = true,
   onSplitTerminal,
   onSplitTerminalVertical,
   onNewTerminal,
@@ -1677,7 +1679,7 @@ export default function ThreadTerminalDrawer({
                           onSessionExited={() => onCloseTerminal(terminalId)}
                           onAddTerminalContext={onAddTerminalContext}
                           focusRequestId={focusRequestId}
-                          autoFocus={terminalId === resolvedActiveTerminalId}
+                          autoFocus={autoFocus && terminalId === resolvedActiveTerminalId}
                           visible={visible}
                           resizeEpoch={resizeEpoch}
                           drawerHeight={drawerHeight}
@@ -1707,7 +1709,7 @@ export default function ThreadTerminalDrawer({
                   onSessionExited={() => onCloseTerminal(resolvedActiveTerminalId)}
                   onAddTerminalContext={onAddTerminalContext}
                   focusRequestId={focusRequestId}
-                  autoFocus
+                  autoFocus={autoFocus}
                   visible={visible}
                   resizeEpoch={resizeEpoch}
                   drawerHeight={drawerHeight}

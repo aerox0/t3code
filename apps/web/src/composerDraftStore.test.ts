@@ -1,3 +1,4 @@
+import { useWorkspaceStore, workspaceChatId } from "./workspaceStore";
 import {
   scopedProjectKey,
   scopedThreadKey,
@@ -1491,6 +1492,46 @@ describe("composerDraftStore project draft thread mapping", () => {
       resetPreviewStateForTests();
     }
   });
+
+  it("retains an empty draft owned by a workspace tab when opening another chat", () => {
+    const store = useComposerDraftStore.getState();
+    store.setProjectDraftThreadId(projectRef, draftId, { threadId });
+    const target = { kind: "draft", draftId } as const;
+    useWorkspaceStore
+      .getState()
+      .open(projectRef, { id: workspaceChatId(target), kind: "chat", target });
+    try {
+      store.setProjectDraftThreadId(projectRef, otherDraftId, { threadId: otherThreadId });
+      expect(store.getDraftSession(draftId)?.threadId).toBe(threadId);
+      expect(store.getDraftSession(otherDraftId)?.threadId).toBe(otherThreadId);
+    } finally {
+      useWorkspaceStore.setState({ byProject: {} });
+    }
+  });
+
+  it.each([false, true])(
+    "promotes an unmounted workspace draft before finalization (closed: %s)",
+    (closed) => {
+      const store = useComposerDraftStore.getState();
+      store.setProjectDraftThreadId(projectRef, draftId, { threadId });
+      const target = { kind: "draft", draftId } as const;
+      const id = workspaceChatId(target);
+      useWorkspaceStore.getState().open(projectRef, { id, kind: "chat", target });
+      if (closed) useWorkspaceStore.getState().close(projectRef, id);
+      try {
+        finalizePromotedDraftThreadByRef(scopeThreadRef(TEST_ENVIRONMENT_ID, threadId));
+        expect(store.getDraftSession(draftId)).toBeNull();
+        const layout = Object.values(useWorkspaceStore.getState().byProject)[0]!;
+        expect(closed ? layout.closedChats[0] : layout.tabs[id]).toEqual({
+          id,
+          kind: "chat",
+          target: { kind: "server", threadRef: scopeThreadRef(TEST_ENVIRONMENT_ID, threadId) },
+        });
+      } finally {
+        useWorkspaceStore.setState({ byProject: {} });
+      }
+    },
+  );
 
   it("keeps invested composer drafts alive unmapped when remapping a project to a new draft thread", () => {
     const store = useComposerDraftStore.getState();

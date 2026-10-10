@@ -129,6 +129,7 @@ interface FilePreviewPanelProps {
   revealLine: number | null;
   revealRequestId: number;
   onOpenFile: (relativePath: string) => void;
+  onAddToChat?: (mention: string) => void;
   onPendingChange: (relativePath: string, pending: boolean) => void;
   selectedFilePending: boolean;
   workspaceMutationId: string | null;
@@ -1038,6 +1039,7 @@ export default function FilePreviewPanel({
   revealLine,
   revealRequestId,
   onOpenFile,
+  onAddToChat,
   onPendingChange,
   selectedFilePending,
   workspaceMutationId,
@@ -1265,6 +1267,7 @@ export default function FilePreviewPanel({
                 cwd={cwd}
                 environmentId={environmentId}
                 onOpenFile={onOpenFile}
+                {...(onAddToChat ? { onAddToChat } : {})}
                 projectName={projectName}
                 relativePath={relativePath}
                 workspaceMutationId={workspaceMutationId}
@@ -1494,6 +1497,7 @@ export default function FilePreviewPanel({
               selectedPath={relativePath}
               selectedPathRevealId={revealRequestId}
               onOpenFile={onOpenFile}
+              {...(onAddToChat ? { onAddToChat } : {})}
               workspaceMutationId={workspaceMutationId}
               {...(previewPath && !isMedia && !isPdf
                 ? { onRefreshSelectedFile: file.refresh }

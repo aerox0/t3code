@@ -1,7 +1,9 @@
+import { useWorkspaceStore } from "~/workspaceStore";
 import { useAtomValue } from "@effect/atom-react";
 import {
   scopeProjectRef,
   scopedThreadKey,
+  scopedProjectKey,
   scopeThreadRef,
 } from "@t3tools/client-runtime/environment";
 import type { ScopedThreadRef } from "@t3tools/contracts";
@@ -30,7 +32,7 @@ import {
   useRightPanelStore,
 } from "../rightPanelStore";
 import { appAtomRegistry } from "../rpc/atomRegistry";
-import { readProject, readThreadShell } from "../state/entities";
+import { readProject, readThreadShell, useThreadShell } from "../state/entities";
 import { previewEnvironment } from "../state/preview";
 import { primaryServerKeybindingsAtom } from "../state/server";
 import { environmentShell } from "../state/shell";
@@ -66,6 +68,15 @@ export function ReopenClosedViewShortcut() {
       : draft
         ? (draft.promotedTo ?? scopeThreadRef(draft.environmentId, draft.threadId))
         : null;
+  const ownerThread = useThreadShell(threadRef);
+  const projectId = ownerThread?.projectId ?? draft?.projectId;
+  const workspaceProject =
+    threadRef && projectId ? scopeProjectRef(threadRef.environmentId, projectId) : null;
+  const workspaceKey = workspaceProject ? scopedProjectKey(workspaceProject) : null;
+  const hasWorkspaceHistory = useWorkspaceStore(
+    (state) =>
+      workspaceKey !== null && (state.byProject[workspaceKey]?.closedChats.length ?? 0) > 0,
+  );
   const terminalOpen = useTerminalUiStateStore(
     (state) =>
       selectThreadTerminalUiState(state.terminalUiStateByThreadKey, threadRef).terminalOpen,
@@ -79,6 +90,15 @@ export function ReopenClosedViewShortcut() {
   const pending = useRef(Promise.resolve());
 
   const reopenNext = useEffectEvent(async () => {
+    const workspace = workspaceKey ? useWorkspaceStore.getState().byProject[workspaceKey] : null;
+    const chat = workspace?.closedChats[0];
+    if (workspaceProject && workspace && chat) {
+      useWorkspaceStore.getState().open(workspaceProject, chat, workspace.focusedPane);
+      if (chat.target.kind === "draft")
+        await navigate({ to: "/draft/$draftId", params: { draftId: chat.target.draftId } });
+      else await navigate({ to: "/$environmentId/$threadId", params: chat.target.threadRef });
+      return;
+    }
     const catalog = appAtomRegistry.get(environmentCatalog.catalogValueAtom);
     const drafts = useComposerDraftStore.getState();
     const panelsByThread = useRightPanelStore.getState().byThreadKey;
@@ -150,7 +170,7 @@ export function ReopenClosedViewShortcut() {
       if (
         event.defaultPrevented ||
         isCommandPaletteOpen() ||
-        useClosedViewStore.getState().entries.length === 0 ||
+        (useClosedViewStore.getState().entries.length === 0 && !hasWorkspaceHistory) ||
         (event.target instanceof HTMLElement && event.target.closest("[data-keybinding-capture]"))
       )
         return;
@@ -177,7 +197,7 @@ export function ReopenClosedViewShortcut() {
       window.removeEventListener("keydown", onKeyDown, true);
       unsubscribe?.();
     };
-  }, [keybindings, previewOpen, terminalOpen]);
+  }, [hasWorkspaceHistory, keybindings, previewOpen, terminalOpen]);
 
   useEffect(() => {
     const preview = window.desktopBridge?.preview;
@@ -198,7 +218,7 @@ export function ReopenClosedViewShortcut() {
     // the app's keydown listeners. The desktop claims them in the guest and
     // sends each command back as a menu action.
     const commands = [
-      ...(hasHistory ? (["view.reopenClosed"] as const) : []),
+      ...(hasHistory || hasWorkspaceHistory ? (["view.reopenClosed"] as const) : []),
       ...PREVIEW_FORWARDED_LAYOUT_COMMANDS,
     ];
     void preview
@@ -214,7 +234,7 @@ export function ReopenClosedViewShortcut() {
     return () => {
       void preview.setForwardedShortcuts?.([]).catch(() => undefined);
     };
-  }, [hasHistory, keybindings, terminalOpen]);
+  }, [hasHistory, hasWorkspaceHistory, keybindings, terminalOpen]);
 
   return null;
 }

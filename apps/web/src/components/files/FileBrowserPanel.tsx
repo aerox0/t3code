@@ -38,6 +38,7 @@ interface FileBrowserPanelProps {
   /** Bumped when the same path should be revealed again (e.g. re-opened from search). */
   selectedPathRevealId: number;
   onOpenFile: (relativePath: string) => void;
+  onAddToChat?: (mention: string) => void;
   onRefreshSelectedFile?: () => void;
   workspaceMutationId: string | null;
 }
@@ -102,6 +103,7 @@ export default function FileBrowserPanel({
   selectedPath,
   selectedPathRevealId,
   onOpenFile,
+  onAddToChat,
   onRefreshSelectedFile,
   workspaceMutationId,
 }: FileBrowserPanelProps) {
@@ -213,6 +215,10 @@ export default function FileBrowserPanel({
         return;
       }
       if (clicked === "add-to-chat") {
+        if (onAddToChat) {
+          onAddToChat(mention);
+          return;
+        }
         const composer = composerRef?.current;
         if (!composer) {
           toastManager.add({
